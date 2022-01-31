@@ -19,6 +19,7 @@ export class AppStack extends Stack {
       cert = new certificatemanager.Certificate(this, "Cert", {
         domainName: domainNames[0],
         subjectAlternativeNames,
+        validation: certificatemanager.CertificateValidation.fromDns(),
       });
       new CfnOutput(this, "CertArn", { value: cert.certificateArn });
     }
