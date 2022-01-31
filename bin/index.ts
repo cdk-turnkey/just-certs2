@@ -23,7 +23,7 @@ const stackname = require("@cdk-turnkey/stackname");
       this.appParamName = appParamName;
     }
   }
-  const configParams: Array<ConfigParam> = [new ConfigParam("customProp")];
+  const configParams: Array<ConfigParam> = [new ConfigParam("domainNames")];
   const ssmParams = {
     Names: configParams.map((c) => c.ssmParamName()),
     WithDecryption: true,
@@ -43,8 +43,14 @@ const stackname = require("@cdk-turnkey/stackname");
   }
   const ssmParameterData: any = {};
   let valueHash;
+  enum AWS_SSM_SDK_PARAMETER_TYPES {
+    // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SSM.html#getParameters-property
+    STRING = "String",
+    SECURE_STRING = "SecureString",
+    STRING_LIST = "StringList",
+  }
   ssmResponse?.data?.Parameters?.forEach(
-    (p: { Name: string; Value: string }) => {
+    (p: { Name: string; Type: string; Value: string }) => {
       console.log("Received parameter named:");
       console.log(p.Name);
       valueHash = crypto
@@ -55,7 +61,14 @@ const stackname = require("@cdk-turnkey/stackname");
       console.log("value hash:");
       console.log(valueHash);
       console.log("**************");
-      ssmParameterData[p.Name] = p.Value;
+      if (
+        p.Type == AWS_SSM_SDK_PARAMETER_TYPES.STRING ||
+        p.Type == AWS_SSM_SDK_PARAMETER_TYPES.SECURE_STRING
+      ) {
+        ssmParameterData[p.Name] = p.Value;
+      }
+      if (p.Type == AWS_SSM_SDK_PARAMETER_TYPES.STRING_LIST)
+        ssmParameterData[p.Name] = p.Value.split(",");
     }
   );
   console.log("==================");
@@ -67,16 +80,14 @@ const stackname = require("@cdk-turnkey/stackname");
     appProps[c.appParamName] = c.ssmParamValue;
   });
   // Param validation
-  if (appProps.customProp) {
+  let domainNames;
+  if (appProps.domainNames) {
     // Validate the customProp, if provided
+    console.log(typeof appProps.domainNames);
+    domainNames = appProps.domainNames.split(",");
   }
-  console.log("bin: Instantiating stack with fromAddress:");
-  console.log(appProps.fromAddress);
-  console.log("and domainName:");
-  console.log(appProps.domainName);
-  console.log("and zoneId:");
-  console.log(appProps.zoneId);
-  // TODO: print a hash of the IDP app secrets
+  console.log("and domainNames:");
+  console.log(appProps.domainNames);
   new AppStack(app, stackname("app"), {
     ...(appProps as AppStackProps),
   });

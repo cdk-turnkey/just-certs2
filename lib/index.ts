@@ -1,23 +1,26 @@
 import { App, Stack, StackProps, RemovalPolicy, CfnOutput } from "aws-cdk-lib";
-import { aws_s3 as s3 } from "aws-cdk-lib";
+import { aws_certificatemanager as certificatemanager } from "aws-cdk-lib";
 
 export interface AppStackProps extends StackProps {
-  customProp?: string;
+  domainNames?: [string];
 }
 export class AppStack extends Stack {
   constructor(scope: App, id: string, props: AppStackProps = {}) {
     super(scope, id, props);
-    const { customProp } = props;
-    const defaultBucketProps = {
-      removalPolicy: RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
-    };
-    const bucket = new s3.Bucket(this, "Bucket", {
-      ...defaultBucketProps,
-      versioned: true,
-    });
-    new CfnOutput(this, "BucketName", {
-      value: bucket.bucketName,
-    });
+    const { domainNames } = props;
+    // make a cert that will not wait for validation
+    // we will validate this outside of AWS
+    let cert;
+    if (domainNames && domainNames.length > 0) {
+      let subjectAlternativeNames;
+      if (domainNames.length > 1) {
+        subjectAlternativeNames = domainNames.slice(1);
+      }
+      cert = new certificatemanager.Certificate(this, "Cert", {
+        domainName: domainNames[0],
+        subjectAlternativeNames,
+      });
+      new CfnOutput(this, "CertArn", { value: cert.certificateArn });
+    }
   }
 }
