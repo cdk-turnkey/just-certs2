@@ -83,8 +83,6 @@ const stackname = require("@cdk-turnkey/stackname");
   let domainNames;
   if (appProps.domainNames) {
     // Validate the customProp, if provided
-    console.log(typeof appProps.domainNames);
-    domainNames = appProps.domainNames.split(",");
   }
   console.log("and domainNames:");
   console.log(appProps.domainNames);
